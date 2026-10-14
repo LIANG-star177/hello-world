@@ -1,0 +1,30 @@
+# Paid compute + persistent disk: review current Render pricing before deployment.
+services:
+  - type: web
+    name: present-attendance
+    runtime: node
+    plan: starter
+    region: singapore
+    numInstances: 1
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:cloud
+    healthCheckPath: /api/health
+    disk:
+      name: attendance-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: NODE_ENV
+        value: production
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: TEACHER_PASSWORD
+        sync: false
+      - key: DATABASE_PATH
+        value: /var/data/attendance.sqlite
+      - key: LOCATION_RETENTION_DAYS
+        value: "30"
+      - key: ENABLE_SIMULATION
+        value: "false"

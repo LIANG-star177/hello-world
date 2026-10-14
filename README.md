@@ -2,6 +2,14 @@
 
 A runnable mobile-first attendance app: Next.js/React, server APIs, SQLite (Node's built-in driver), signed rotating QR codes, and Leaflet/OpenStreetMap maps. Requires **Node 24+**.
 
+## Phone attendance over public HTTPS
+
+See [公网部署与手机使用说明](DEPLOY.zh-CN.md). `start-public-windows.cmd` prepares a temporary HTTPS Cloudflare Quick Tunnel for cross-network phone testing without a hosting account; your Windows computer must remain running. For fixed-address hosting, `render.yaml` defines a paid single-instance Render service with persistent SQLite storage. Review pricing and set a teacher password in Render before deploying. Neither configuration has been deployed to its external provider from this environment.
+
+[Deploy to Render](https://render.com/deploy?repo=https://github.com/LIANG-star177/hello-world)
+
+Public QR links now use server-configured `PUBLIC_BASE_URL` or Render's `RENDER_EXTERNAL_URL`. `npm run start:cloud` checks production settings, disables simulation and prunes expired precise coordinates at startup and hourly. `/api/health` checks database/auth readiness. These eliminate dependence on a teacher's local IP or students sharing Wi-Fi.
+
 ## Windows one-click local setup
 
 Extract the entire GitHub ZIP first, then double-click `start-windows.cmd` in the extracted project folder. The launcher checks Node.js 24+, installs LTS through Windows Package Manager if available (Windows may request installation permission), runs `npm ci`, enables desktop simulation, starts the server on port 3000 and opens the browser when ready. If Node installation is unavailable, install Node.js 24+ from https://nodejs.org and rerun. Keep the terminal open; Ctrl+C stops the server. A port conflict stops setup rather than opening another application. Allow dependency installation to finish; it requires Internet access.

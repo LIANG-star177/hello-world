@@ -11,6 +11,7 @@ import {
   teacherPassword,
 } from "../../../lib/auth";
 import { evaluate, point, qrToken, verify } from "../../../lib/core";
+import {checkinUrl, allowedOrigin} from "../../../lib/public-url";
 export const runtime = "nodejs";
 const limits = new Map<string, { n: number; until: number }>();
 function limit(key: string, max: number) {
@@ -48,14 +49,14 @@ async function handle(req: Request) {
     const url = new URL(req.url);
     const path = url.pathname.slice(5);
     const write = req.method === "POST";
-    if (
-      write &&
-      req.headers.get("origin") &&
-      (new URL(req.headers.get("origin")!).host !== (req.headers.get("host") || url.host) || !["http:", "https:"].includes(new URL(req.headers.get("origin")!).protocol))
-    )
+    if (write && !allowedOrigin(req))
       return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
     if (write && Number(req.headers.get("content-length") || 0) > 16000)
       return NextResponse.json({ error: "Request too large" }, { status: 413 });
+    if(path === "health" && !write) {
+      try { secret(); teacherPassword(); one('SELECT 1'); return NextResponse.json({ok:true},{headers:{'Cache-Control':'no-store'}}); }
+      catch { return NextResponse.json({ok:false},{status:503}); }
+    }
     const user = identity(req);
     if (write)
       limit(user ? `${user.role}:${user.id || "teacher"}` : "anonymous", 60);
@@ -229,7 +230,8 @@ async function handle(req: Request) {
       if (match[2] === "qr") {
         if (Date.now() < s.start || Date.now() >= s.end)
           throw new Error("Attendance window is closed");
-        return NextResponse.json(qrToken(s.id, secret(), Date.now(), s.end));
+        const q = qrToken(s.id, secret(), Date.now(), s.end);
+        return NextResponse.json({...q, url:checkinUrl(req,q.token)});
       }
       prune();
       const records = all(

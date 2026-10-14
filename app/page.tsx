@@ -82,7 +82,7 @@ export default function Teacher() {
       inFlight = true;
       try {
         const q = await api(`sessions/${selected}/qr`);
-        const image = await QRCode.toDataURL(`${window.location.origin}/student?token=${encodeURIComponent(q.token)}`, {width:600, margin:2,errorCorrectionLevel:'M'});
+        const image = await QRCode.toDataURL(q.url || `${window.location.origin}/student?token=${encodeURIComponent(q.token)}`, {width:600, margin:2,errorCorrectionLevel:'M'});
         if (alive) { expires=q.exp; setQr({...q,sessionId:selected});setQrImage(image); }
       } catch(e) { if(alive) setError((e as Error).message); }
       finally { inFlight=false; }
@@ -473,7 +473,7 @@ export default function Teacher() {
                     {qrReady && (
                       <a
                         className="student-link"
-                        href={`/student?token=${encodeURIComponent(qr.token)}`}
+                        href={qr.url || `/student?token=${encodeURIComponent(qr.token)}`}
                         target="_blank"
                         rel="noreferrer"
                       >

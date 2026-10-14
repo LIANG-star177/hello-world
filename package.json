@@ -9,7 +9,8 @@
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "db:prune": "tsx scripts/prune.ts",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "start:cloud": "node scripts/start-cloud.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",

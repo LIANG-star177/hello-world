@@ -1,0 +1,23 @@
+import { spawn } from 'node:child_process';
+import { mkdirSync, accessSync, constants } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+const secret=process.env.AUTH_SECRET;
+const password=process.env.TEACHER_PASSWORD;
+if(!secret || secret.length<32 || secret.startsWith('replace-')) throw Error('Set a random AUTH_SECRET of at least 32 characters.');
+if(!password || password.length<12 || password==='change-this-password') throw Error('Set TEACHER_PASSWORD with at least 12 characters.');
+const base=process.env.PUBLIC_BASE_URL || process.env.RENDER_EXTERNAL_URL;
+if(!base) throw Error('Set PUBLIC_BASE_URL to the public HTTPS origin.');
+const url=new URL(base);
+if(url.protocol!=='https:' || url.pathname!=='/' || url.search || url.hash || url.username || url.password || ['localhost','127.0.0.1','[::1]'].includes(url.hostname)) throw Error('Public URL must be a public HTTPS origin.');
+process.env.NODE_ENV='production';
+process.env.ENABLE_SIMULATION='false';
+if(!process.env.DATABASE_PATH) throw Error('Set DATABASE_PATH on persistent storage.');
+const folder=dirname(resolve(process.env.DATABASE_PATH));mkdirSync(folder,{recursive:true});accessSync(folder,constants.W_OK);
+async function prune(){return new Promise((resolve,reject)=>{const child=spawn(process.execPath,['node_modules/tsx/dist/cli.mjs','scripts/prune.ts'],{stdio:'inherit',env:process.env});child.once('error',reject);child.once('exit',code=>code===0?resolve():reject(Error('Location pruning failed')));});}
+await prune();
+const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','0.0.0.0','--port',process.env.PORT||'3000'],{stdio:'inherit',env:process.env});
+let pruning=false;
+const timer=setInterval(async()=>{if(pruning)return;pruning=true;try{await prune()}catch(e){console.error(e.message)}finally{pruning=false}},3600000);
+for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{clearInterval(timer);server.kill(signal)});
+server.once('error',e=>{console.error(e.message);clearInterval(timer);process.exitCode=1});
+server.once('exit',(code,signal)=>{clearInterval(timer);process.exitCode=code??(signal==='SIGTERM'||signal==='SIGINT'?0:1)});
