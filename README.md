@@ -1,90 +1,75 @@
-# Welcome to GitHub
+# Present — classroom attendance MVP
 
-Welcome to GitHub—where millions of developers work together on software. Ready to get started? Let’s learn how this all works by building and publishing your first GitHub Pages website!
+A runnable mobile-first attendance app: Next.js/React, server APIs, SQLite (Node's built-in driver), signed rotating QR codes, and Leaflet/OpenStreetMap maps. Requires **Node 24+**.
 
-## Repositories
+## Run locally
 
-Right now, we’re in your first GitHub **repository**. A repository is like a folder or storage space for your project. Your project's repository contains all its files such as code, documentation, images, and more. It also tracks every change that you—or your collaborators—make to each file, so you can always go back to previous versions of your project if you make any mistakes.
-
-This repository contains three important files: The HTML code for your first website on GitHub, the CSS stylesheet that decorates your website with colors and fonts, and the **README** file. It also contains an image folder, with one image file.
-
-## Describe your project
-
-You are currently viewing your project's **README** file. **_README_** files are like cover pages or elevator pitches for your project. They are written in plain text or [Markdown language](https://guides.github.com/features/mastering-markdown/), and usually include a paragraph describing the project, directions on how to use it, who authored it, and more.
-
-[Learn more about READMEs](https://help.github.com/en/articles/about-readmes)
-
-## Your first website
-
-**GitHub Pages** is a free and easy way to create a website using the code that lives in your GitHub repositories. You can use GitHub Pages to build a portfolio of your work, create a personal website, or share a fun project that you coded with the world. GitHub Pages is automatically enabled in this repository, but when you create new repositories in the future, the steps to launch a GitHub Pages website will be slightly different.
-
-[Learn more about GitHub Pages](https://pages.github.com/)
-
-## Rename this repository to publish your site
-
-We've already set-up a GitHub Pages website for you, based on your personal username. This repository is called `hello-world`, but you'll rename it to: `username.github.io`, to match your website's URL address. If the first part of the repository doesn’t exactly match your username, it won’t work, so make sure to get it right.
-
-Let's get started! To update this repository’s name, click the `Settings` tab on this page. This will take you to your repository’s settings page. 
-
-![repo-settings-image](https://user-images.githubusercontent.com/18093541/63130482-99e6ad80-bf88-11e9-99a1-d3cf1660b47e.png)
-
-Under the **Repository Name** heading, type: `username.github.io`, where username is your username on GitHub. Then click **Rename**—and that’s it. When you’re done, click your repository name or browser’s back button to return to this page.
-
-<img width="1039" alt="rename_screenshot" src="https://user-images.githubusercontent.com/18093541/63129466-956cc580-bf85-11e9-92d8-b028dd483fa5.png">
-
-Once you click **Rename**, your website will automatically be published at: https://your-username.github.io/. The HTML file—called `index.html`—is rendered as the home page and you'll be making changes to this file in the next step.
-
-Congratulations! You just launched your first GitHub Pages website. It's now live to share with the entire world
-
-## Making your first edit
-
-When you make any change to any file in your project, you’re making a **commit**. If you fix a typo, update a filename, or edit your code, you can add it to GitHub as a commit. Your commits represent your project’s entire history—and they’re all saved in your project’s repository.
-
-With each commit, you have the opportunity to write a **commit message**, a short, meaningful comment describing the change you’re making to a file. So you always know exactly what changed, no matter when you return to a commit.
-
-## Practice: Customize your first GitHub website by writing HTML code
-
-Want to edit the site you just published? Let’s practice commits by introducing yourself in your `index.html` file. Don’t worry about getting it right the first time—you can always build on your introduction later.
-
-Let’s start with this template:
-
-```
-<p>Hello World! I’m [username]. This is my website!</p>
+```sh
+npm ci
+# Optional: copy .env.example to .env.local, replace secret/password.
+# For desktop simulation set ENABLE_SIMULATION=true in .env.local.
+npm run dev
 ```
 
-To add your introduction, copy our template and click the edit pencil icon at the top right hand corner of the `index.html` file.
+Open the app on port 3000. Teacher demo password is `teacher-demo` when not configured. Create a session, display its QR, and scan on a phone. Demo students are `S001 / Demo Student 1` through `S025 / Demo Student 25`; the teacher roster shows all accounts. New courses enroll all demo students in this MVP.
 
-<img width="997" alt="edit-this-file" src="https://user-images.githubusercontent.com/18093541/63131820-0794d880-bf8d-11e9-8b3d-c096355e9389.png">
+Seed course: **LAWS7701 — Data Applications and Regulation in Digital Society** (25 fake students). Session form defaults to **E32-G007**, with **0, 0 placeholder coordinates**. These are NOT the real classroom coordinates. Replace latitude/longitude with instructor-verified coordinates before class. The instructor can choose start time and duration (end = start + duration), normal/review radii, and maximum adjustment. Defaults are 3 minutes, 100 m, 300 m, and 50 m.
 
+Student flow: scan → identify → request location → inspect/adjust marker → confirm. A code expires 20 seconds after issuance (or earlier at session end). If login or GPS retrieval takes longer, rescan the current QR; do not reuse the old tab's token. In development the desktop simulator can place a fix 0, 150 or 400 m north of the classroom. Simulations are server-gated, flagged in records, and disabled in production.
 
-Delete this placeholder line:
+**Phone geolocation requires HTTPS.** HTTP localhost works on the same device; a phone accessing a laptop's plain HTTP LAN address generally cannot use browser geolocation. Use a trusted HTTPS reverse proxy for phone testing. Set the external origin correctly so QR links point to that HTTPS address.
 
+## Commands and validation
+
+```sh
+npm test
+npm run typecheck
+npm run build
+npm start
+# In a separate run, with no other server on port 3100:
+npm run smoke
+npm run db:prune
 ```
-<p>Welcome to your first GitHub Pages website!</p>
-```
 
-Then, paste the template to line 15 and fill in the blanks.
+Tests cover Haversine calculations, expiration and tampering, server rejection of expired codes, correction limits, boundaries, malformed/stale locations, poor accuracy, teacher/student permissions, duplicate submissions, CSV and retention. There is no separate lint configuration; TypeScript and the production build are the static checks.
 
-<img width="1032" alt="edit-githuboctocat-index" src="https://user-images.githubusercontent.com/18093541/63132339-c3a2d300-bf8e-11e9-8222-59c2702f6c42.png">
+## Architecture / schema
 
+- `app/page.tsx`: teacher login, course/session creation, large QR projection, live polling, summary, anomaly filters, sorting, roster, CSV, location map.
+- `app/student/page.tsx`: student identity, one-shot high-accuracy browser geolocation, draggable correction marker, status receipt, optional desktop simulator.
+- `app/api/[...path]/route.ts`: Node-only server API, authentication, validation, attendance classification and export.
+- `lib/auth.ts`: replaceable demo identity adapter. Cookies are HttpOnly, SameSite=Lax, signed and expire after eight hours; Secure in production.
+- `lib/core.ts` / `lib/geo.ts`: signed tokens, validation and Haversine.
+- `lib/db.ts`: parameterized SQLite persistence; WAL and unique student/session constraint.
+- `migrations/001_initial.sql`: initial idempotent schema, foreign keys and indexes, user_version=1. Future schema changes require sequential versioned migrations.
+- `scripts/prune.ts`: clears precise raw/corrected coordinates while retaining aggregate attendance records.
 
-When you’re done, scroll down to the `Commit changes` section near the bottom of the edit page. Add a short message explaining your change, like "Add my introduction", then click `Commit changes`.
+SQLite is created automatically at `data/attendance.sqlite`. Tables: courses, students, enrollments, sessions, attendance. Attendance stores student/course/session IDs, server submission time, browser fix timestamp, raw and corrected coordinates, accuracy, correction distance, classroom distance, QR identifier, status, poor-accuracy and simulation flags. Keep SQLite data outside the public directory. The data-access module isolates persistence for later PostgreSQL migration; replacing the driver requires SQL migration and a distributed rate-limit backend.
 
+## QR and server validation
 
-<img width="1030" alt="add-my-username" src="https://user-images.githubusercontent.com/18093541/63131801-efbd5480-bf8c-11e9-9806-89273f027d16.png">
+QR contains only a signed opaque session reference, random 128-bit token identifier, token type and expiry. It contains no student identity, classroom name or coordinates. HMAC-SHA256 integrity and expiry are checked on the server using a constant-time signature comparison. Tokens can be shared among students during their short valid interval, as intended; each student can submit once per session. Expired tokens and tokens used outside the session window are rejected.
 
-Once you click `Commit changes`, your changes will automatically be published on your GitHub Pages website. Refresh the page to see your new changes live in action.
+Every submission validates numeric ranges, timestamp freshness (last two minutes, at most ten seconds future), nonnegative accuracy, enrollment, correction distance and session limits. The server recalculates both distances using Haversine. Corrected distance <= normal radius is NORMAL, <= review radius is REVIEW, otherwise REJECTED. Accuracy > normal radius flags the record without automatically rejecting it. Dashboard checked-in count includes NORMAL and REVIEW; REJECTED remains absent. Invalid token/correction requests are errors, not attendance records; valid submissions outside the fence are recorded as REJECTED. Duplicate submissions return HTTP 409.
 
-:tada: You just made your first commit! :tada:
+Basic per-identity write rate limits and a global demo login limiter run in memory; production behind multiple instances needs shared limits and trusted client IP handling. Same-origin checks protect cookie-authenticated writes. Inputs use Zod and SQL is parameterized; CSV escapes spreadsheet formula prefixes. Teacher-only endpoints protect roster, coordinates, records and exports. Do not publicly expose the demo identity system as trustworthy attendance authentication.
 
-## Extra Credit: Keep on building!
+## Privacy and limitations
 
-Change the placeholder Octocat gif on your GitHub Pages website by [creating your own personal Octocat emoji](https://myoctocat.com/build-your-octocat/) or [choose a different Octocat gif from our logo library here](https://octodex.github.com/). Add that image to line 12 of your `index.html` file, in place of the `<img src=` link.
+Location is requested only when the student presses Allow location. No watchPosition, background tracking or continuous collection. Raw and corrected points are kept separately and never overwritten by marker adjustment. Defaults to 30-day precise-coordinate retention. Teacher record reads apply pruning; schedule `npm run db:prune` daily for deletion even when nobody opens the dashboard. Metrics, status, token identifier and identity remain; implement institutional record deletion and backup expiry policy separately. OpenStreetMap tile requests reveal viewport/network information to the tile provider; retain attribution and comply with its usage policy. Map tiles require an Internet connection; allow a.tile.openstreetmap.org, b.tile.openstreetmap.org and c.tile.openstreetmap.org in restricted cloud network settings. The current cloud proxy returned HTTP 403 for tile access, so basemap imagery was not verified here; map markers, fences and submission were verified. GPS confirmation and server checks remain available if tiles fail.
 
-Want to add even more code and fun styles to your GitHub Pages website? [Follow these instructions](https://github.com/github/personal-website) to build a fully-fledged static website.
+Demo ID/name authentication is intentionally low assurance and permits impersonation. GPS payloads can be forged; the app cannot prove device presence or prevent sophisticated GPS spoofing. QR screenshots remain usable during the short validity window. Geofencing and teacher review provide deterrence, not proof. Indoor GPS and device permissions can fail; instructors must have a manual exception workflow. This MVP records anomalies but does not yet support teacher status overrides. Under-ten-second completion is a UX target, not a measured guarantee.
 
-![octocat](./images/create-octocat.png)
+## University SSO
 
-## Everything you need to know about GitHub
+Replace `demoStudent` and the student login API with a server-side OAuth/OIDC callback or SAML assertion validation. Validate issuer, audience, signature, state/nonce and expiration; map verified claims to institution-managed student IDs, enforce enrollment and continue issuing the same role-scoped session cookie. Add a teacher identity provider and role policy. Never trust a client-supplied student ID as an authenticated claim. No University of Macau endpoints or credentials are assumed.
 
-Getting started is the hardest part. If there’s anything you’d like to know as you get started with GitHub, try searching [GitHub Help](https://help.github.com). Our documentation has tutorials on everything from changing your repository settings to configuring GitHub from your command line.
+## Production deployment
+
+1. Install Node 24+, `npm ci`; run tests, typecheck and build.
+2. Set a random AUTH_SECRET of at least 32 characters and a strong TEACHER_PASSWORD of at least 12 characters. Generate the secret securely with `openssl rand -hex 32`. Do not commit secrets. Production refuses missing/default secrets when authentication is used.
+3. Disable simulation; replace demo authentication with verified institutional identity before real student use. Configure actual classroom coordinates and roster.
+4. Run `npm start` under a process manager. Terminate trusted HTTPS at a reverse proxy and forward requests preserving the same external Origin/Host. Ensure app is served at the public QR origin. Expose only HTTPS to students, restrict internal API/server ports, and configure appropriate secure headers at the proxy.
+5. Mount persistent writable storage for DATABASE_PATH, backed up securely. Use one application instance for SQLite/in-memory limits. Start from the repository root so migration paths resolve. Schedule retention pruning and backup expiry. Protect teacher credentials and CSV exports. Switch to PostgreSQL and shared rate limits before horizontal scaling.
+
+No production deployment, SSO integration or measured classroom trial is implied by local tests.
