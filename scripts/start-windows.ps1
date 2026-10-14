@@ -25,8 +25,8 @@ try {
     $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 3000)
     try { $listener.Start() } catch { throw 'Port 3000 is already in use. Close the previous attendance terminal, or the application using that port, and retry.' } finally { $listener.Stop() }
     Write-Host 'Installing project dependencies using the lockfile...'
-    & npm.cmd ci
-    if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed. Check the error above and your network connection, then retry.' }
+    & npm.cmd ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 --fetch-timeout=300000 --no-audit --no-fund
+    if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed. ECONNRESET means a download connection was interrupted: check access to registry.npmjs.org and your required network proxy. EPERM means files could not be removed: close other project terminals, restart Windows if needed, and extract a fresh copy into a short path such as D:\attendance. Keep TLS verification enabled; do not delete package-lock.json.' }
     $env:ENABLE_SIMULATION = 'true'
     Write-Host ''
     Write-Host 'Teacher demo password: teacher-demo (unless you changed .env.local)' -ForegroundColor Green

@@ -79,3 +79,7 @@ Replace `demoStudent` and the student login API with a server-side OAuth/OIDC ca
 5. Mount persistent writable storage for DATABASE_PATH, backed up securely. Use one application instance for SQLite/in-memory limits. Start from the repository root so migration paths resolve. Schedule retention pruning and backup expiry. Protect teacher credentials and CSV exports. Switch to PostgreSQL and shared rate limits before horizontal scaling.
 
 No production deployment, SSO integration or measured classroom trial is implied by local tests.
+
+## Windows installation troubleshooting
+
+`ECONNRESET` means the package download connection was reset; setup has not completed. The Windows launcher retries downloads with longer timeouts. Check access to https://registry.npmjs.org/ and use your network's required proxy configuration if applicable; a mobile hotspot can help distinguish a local network problem. Do not disable TLS verification or delete the lockfile. `EPERM` during cleanup indicates Windows could not remove a file; another process, security software or permissions may be involved. Close project terminals, restart Windows if necessary, and extract a fresh copy under a short path such as `D:\attendance`. Do not run as administrator merely to work around a network error. npm's update notice is unrelated.
