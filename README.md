@@ -2,6 +2,12 @@
 
 A runnable mobile-first attendance app: Next.js/React, server APIs, SQLite (Node's built-in driver), signed rotating QR codes, and Leaflet/OpenStreetMap maps. Requires **Node 24+**.
 
+## Windows one-click local setup
+
+Extract the entire GitHub ZIP first, then double-click `start-windows.cmd` in the extracted project folder. The launcher checks Node.js 24+, installs LTS through Windows Package Manager if available (Windows may request installation permission), runs `npm ci`, enables desktop simulation, starts the server on port 3000 and opens the browser when ready. If Node installation is unavailable, install Node.js 24+ from https://nodejs.org and rerun. Keep the terminal open; Ctrl+C stops the server. A port conflict stops setup rather than opening another application. Allow dependency installation to finish; it requires Internet access.
+
+The launcher uses a PowerShell execution policy override only for its own process; it does not change the machine's saved policy. Review `scripts/start-windows.ps1` before running it. It binds to localhost, so this launcher is for testing on this computer; it is not a public website or phone-ready HTTPS deployment. Local data persists under `data/`. This Windows launcher has not been executed on Windows in the Linux development environment.
+
 ## Run locally
 
 ```sh
